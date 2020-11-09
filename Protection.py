@@ -31,8 +31,8 @@ def PowerOff():   # switch bcm 13 on and poweroff for Shutdown
    Write('\n\n' + now + ' |--->>  Protection: UPS minimum Capcity reached: ' + str(X708(4)) + ' %   <<<---')
    # Calculate Current Consumption
    runtime = (int(time.time()) - t1)
-   Icalc = ( mAh * (100 - int(minC)) )
-   Icalc = "%4.0f" % ( (int(Icalc) * 60) / int(runtime) )
+   Icalc = ( Icalc * (100 - int(minC)) )
+   Icalc = "%4.0f" % ( (Icalc * 60) / int(runtime) )
    Write(now + ' |-> Calculated Current: ' + str(Icalc) + 'mAh \n' + now + ' |-> USV runtime: ' + str(runtime) + ' s \n')
    time.sleep(5)
    process = subprocess.Popen(ShutDown.split(), stdout=subprocess.PIPE)
@@ -56,6 +56,7 @@ while True:
         time.sleep( (float(Capacity) * 5) / 3 )
     elif float(Capacity) < (float(LastCapacity) - 0.2):
         if ( int(t1) == 1 ):
+             Icalc = ( mAh * (Capacity/100) )
              Write(now + ' |-> Protection: AC Lost, Capacity: ' + str(Capacity) + '%')
              t1 = (int(time.time()) - 60);  # add 60 s for better Calculation Icalc
         else:
