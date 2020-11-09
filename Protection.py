@@ -28,13 +28,14 @@ def X708(bit):
         Capacity = "%3.1f" % (swapped/256); return str(Capacity);
 
 def PowerOff():   # switch bcm 13 on and poweroff for Shutdown
+   now = time.strftime("%H:%M", time.localtime());
    Write('\n\n' + now + ' |--->>  Protection: UPS minimum Capcity reached: ' + str(X708(4)) + ' %   <<<---')
    # Calculate Current Consumption
    runtime = (int(time.time()) - t1)
    Icalc = ( Icalc * (100 - int(minC)) )
    Icalc = "%4.0f" % ( (Icalc * 60) / int(runtime) )
-   Write(now + ' |-> Calculated Current: ' + str(Icalc) + 'mAh \n' + now + ' |-> USV runtime: ' + str(runtime) + ' s \n')
-   time.sleep(5)
+   Write(now + ' |-> Calculated Current: ' + str(Icalc) + 'mAh \n' + now + ' |-> USV runtime: ' + str(runtime) + ' s \n\n')
+   time.sleep(10)
    process = subprocess.Popen(ShutDown.split(), stdout=subprocess.PIPE)
    output, error = process.communicate();
 
