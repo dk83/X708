@@ -24,7 +24,7 @@ USV = GPIO.input(6)   # USV powered: 1  || AC powered: 0 ONLY in X708 Jumper Mod
 
 def Write(text):
    f = open(LogFile, "a+")
-   f.write(text); f.close();
+   f.write(text + '\n'); f.close();
 #   print (text);
 
 # Read i2c from Geekworm X708 UPS
@@ -48,13 +48,14 @@ def PowerOff():   # switch bcm 13 on and poweroff for Shutdown
    output, error = process.communicate();
 
 ###  START   ###
-Write('\n\n' + now + ' |--->>>   Protection.py loaded   <<<---|\n' + now+' |-> PowerOFF Capacity: '+str(minC)+'% <-|\n')
-Write(now + ' |-> Battery Voltage: ' + X708(2) + ' V\n' + now + ' |-< Battery Capacity: ' + X708(4) + ' %\n')
+Write('\n\n' + now + ' |--->>>   Protection.py loaded   <<<---|\n' + now+' |-> PowerOFF Capacity: '+str(minC)+'% <-|')
+Write(now + ' |-> Battery Voltage: ' + X708(2) + ' V\n' + now + ' |-< Battery Capacity: ' + X708(4) + ' %')
 LastCapacity = X708(4)
 Capacity = X708(4)
 while True:
 #   if USV == 0:    ## Wait for Edge Detection only on X708 Jumper Mode 0
 #      GPIO.wait_for_edge(6, GPIO.RISING);
+   now = time.strftime("%H:%M", time.localtime());
    if int(X708(4)) > int(LastCapacity):
       LastCapacity = X708(4)
       t1=0
@@ -71,7 +72,7 @@ while True:
          Status = 'Accu: '+X708(2)+'V - '+X708(4)+'%'
          Status += ' | Time: '+str(int(time.time()) - t1) +'s'
          Status += ' | Temp: '+str(Temp)+'°C'
-         Show = '|->  '+Status+'  <-|\n'
+         Show = '|->  '+Status+'  <-|'
 #      if AC_ON is None:         # if timeout
          if int(X708(4)) > int(minC):   # if USV Capacity Okay
             Write(Show)
