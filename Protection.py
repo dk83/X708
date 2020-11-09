@@ -54,7 +54,7 @@ while True:
             Write(now + ' |-> Protection: AC ON, Charging: ' + Capacity + '%')
             t1=1
         LastCapacity = Capacity
-        time.sleep( (float(Capacity) * 5) / 3 )
+        time.sleep( (float(Capacity) * 3)/2 )
     elif float(Capacity) < (float(LastCapacity) - 0.2):
         if ( int(t1) == 1 ):
              Icalc = ( mAh * (Capacity/100) )
@@ -64,11 +64,11 @@ while True:
              Status = now + ' |-> Status: '+X708(2)+'V - '+ X708(4)+'%'
              Status += ' | Time: '+str(int(time.time()) - t1) +'s'
              Show = Status;
-             if ( float(Capacity) < (float(LastCapacity) - 1.5) ):
+             if float(Capacity) > float(minC):   # if USV Voltage to lower than minCapacity
                   LastCapacity = Capacity
                   Write(Show)
-             if float(Capacity) < float(minC):   # if USV Voltage to lower than minCapacity
+             else:
                   PowerOff();
         time.sleep(float(Capacity))
     else:
-        time.sleep( (float(Capacity) * 3) / 2)
+        time.sleep( (float(Capacity) / 2)
