@@ -17,3 +17,4 @@ sudo ln -s "${PWD}/Battery.py"   "${Bin}/Battery"
 # Prepare Logging
 Log="/var/log/X708.log";
 sudo sh -c "echo ' ' > $Log";
+sudo chmod 0666 "$Log";
