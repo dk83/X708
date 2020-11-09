@@ -61,11 +61,11 @@ while True:
          Write(now + ' |-> Protection: AC ON, Charging: ' + LastCapacity + '%')
          t1=0.1
       LastCapacity = X708(4)
-      time.sleep(600)
+      time.sleep(300)
    else:
       if int(X708(4)) < int(LastCapacity):
 #      Write(now + ' |->>  AC POWER LOWER 90%  <-|')
-         if ( int(t1) == 0.1 ):
+         if ( int(t1) = 0.1 ):
             Write(now + ' |--->>>   Protection: AC Lost, Capacity: ' + LastCapacity + '%')
             t1 = int(time.time());
 #   while USV == 1:
@@ -73,7 +73,7 @@ while True:
          Temp = str(Vc.measure_temp());
          Status = 'Accu: '+X708(2)+'V - '+X708(4)+'%'
          Status += ' | Time: '+str(int(time.time()) - t1) +'s'
-         Status += ' | Temp: '+str(Temp)+'°C'
+#         Status += ' | Temp: '+str(Temp)+'°C'
          Show = '|->  '+Status+'  <-|'
 #      if AC_ON is None:         # if timeout
          if int(X708(4)) > int(minC):   # if USV Capacity Okay
