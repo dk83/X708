@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import RPi.GPIO as GPIO
 from vcgencmd import Vcgencmd
-Vc = Vcgencmd();
+#Vc = Vcgencmd();
 import sys,struct,smbus,sys,time,subprocess,threading
 global Capacity, Volt, Temp, USV
 
@@ -10,12 +10,12 @@ global Capacity, Volt, Temp, USV
 minC=75       # min. Capacity from Battery in percent
 mAh=540       # Li-Ion Capacity: example with 3Ah. Need for Current Calculation
 ShutDown = "PowerOff"   # Set Command for Shutdown & Power Off
-LogFile="/var/log/X708.log"
+LogFile = "/var/log/X708.log"
 
 def Write(text):
    f = open(LogFile, "a+")
    f.write(text + '\n'); f.close();
-   print (text);
+#   print (text);
 
 # Read i2c from Geekworm X708 UPS
 def X708(bit):
@@ -46,6 +46,11 @@ Write(now + ' |-> Battery Voltage: ' + X708(2) + ' V\n' + now + ' |-> Battery Ca
 LastCapacity = Capacity = X708(4)
 t1=1
 
+def Sleep(T):
+    LastCapacity  = Capacity
+    time.sleep(T)
+
+
 while True:
     now = time.strftime("%H:%M", time.localtime());
     Capacity = X708(4)
@@ -53,13 +58,13 @@ while True:
         if ( int(t1) > 1 ):
             Write(now + ' |-> Protection: AC ON, Charging: ' + Capacity + '%')
             t1=1
-        LastCapacity = Capacity
-        time.sleep( (float(Capacity) * 3)/2 )
+        Sleep( (float(Capacity) * 5)/2 )
     elif float(Capacity) < (float(LastCapacity) - 0.2):
         if ( int(t1) == 1 ):
-             Icalc = ( mAh * (Capacity/100) )
+             Icalc = ( mAh * (float(Capacity)/100) )
              Write(now + ' |-> Protection: AC Lost, Capacity: ' + str(Capacity) + '%')
              t1 = (int(time.time()) - 60);  # add 60 s for better Calculation Icalc
+             Sleep( float(Capacity) * 3 )
         else:
              Status = now + ' |-> Status: '+X708(2)+'V - '+ X708(4)+'%'
              Status += ' | Time: '+str(int(time.time()) - t1) +'s'
@@ -67,8 +72,9 @@ while True:
              if float(Capacity) > float(minC):   # if USV Voltage to lower than minCapacity
                   LastCapacity = Capacity
                   Write(Show)
+                  Sleep( (float(Capacity) * 3) / 2)
              else:
-                  PowerOff();
-        time.sleep(float(Capacity))
-    else:
-        time.sleep( (float(Capacity) / 2)
+                  PowerOff
+
+
+
