@@ -4,18 +4,23 @@ import RPi.GPIO as GPIO
 from vcgencmd import Vcgencmd
 #Vc = Vcgencmd();
 import sys,struct,smbus,sys,time,subprocess,threading
-global Capacity, Volt, Temp, USV
+global Capacity, Volt, Temp, USV, t1, LastCapacity
 
 ###   Script settings   ###
-minC=75       # min. Capacity from Battery in percent
+minC=88       # min. Capacity from Battery in percent
 mAh=540       # Li-Ion Capacity: example with 3Ah. Need for Current Calculation
 ShutDown = "PowerOff"   # Set Command for Shutdown & Power Off
 LogFile = "/var/log/Do/Protection.log"
+###   Init variables   ###
+tolerance=0.7         # Tolerance for detect AC_ON  || AC_OFF
+t1=1   # =1: AC_ON  |  =2: Wait for AC Status  |  >2:  AC_OFF  (t1 is a timer for battery runtime or detect charging)
 
+# Define Logging
 def Write(text):
+   now = time.strftime("%H:%M", time.localtime());
    f = open(LogFile, "a+")
-   f.write(text + '\n'); f.close();
-   print (text);
+   f.write(now + ' |-> ' + text + '\n'); f.close();
+   print (now + ' |-> ' + text);
 
 # Read i2c from Geekworm X708 UPS
 def X708(bit):
@@ -26,64 +31,74 @@ def X708(bit):
         Volt = "%1.2f" % (swapped * 1.25 /1000/16); return str(Volt);
    elif ( bit == 4 ):      # Read Capacity from bit: 4
         Capacity = "%3.1f" % (swapped/256); return str(Capacity);
+# Init Capacity value
+LastCapacity = Capacity = X708(4);
+#
+def CalcAmpere(T):
+    Icalc = int( mAh - (mAh * (float(Capacity)/100)) );
+    Icalc = "%4.0f" % (Icalc * (int(T)/60));
+    Write('Calculated Current Consumption: ' + str(Icalc) + 'mAh'); Sleep(1);
 
-def PowerOff():   # switch bcm 13 on and poweroff for Shutdown
-   now = time.strftime("%H:%M", time.localtime());
-   Write('\n\n' + now + ' |--->>  Protection: UPS minimum Capcity reached: ' + str(X708(4)) + ' %   <<<---')
+# Shutdown Raspberry and Power Off
+def ShutDown_Now():
+#   global t1, Icalc, minC;
+   Write('SHUTDOWN,because minimum Capcity: ' + str(X708(4)) + ' % reached')
    # Calculate Current Consumption
-   runtime = (int(time.time()) - t1)
-   Icalc = ( Icalc * (100 - int(minC)) )
-   Icalc = "%4.0f" % ( (Icalc * 60) / int(runtime) )
-   Write(now + ' |-> Calculated Current: ' + str(Icalc) + 'mAh \n' + now + ' |-> USV runtime: ' + str(runtime) + ' s \n\n')
-   time.sleep(10)
-   process = subprocess.Popen(ShutDown.split(), stdout=subprocess.PIPE)
+   runtime = (int(time.time())-t1);
+   CalcAmpere(int(runtime));
+   Write('USV runtime: ' + str(runtime) + ' s');
+   Sleep(10);
+   process = subprocess.Popen(ShutDown.split(), stdout=subprocess.PIPE);
    output, error = process.communicate();
 
-###  START   ###
-now = time.strftime("%H:%M", time.localtime());
-Write('\n\n' + now + ' |--->>>   Protection.py loaded   <<<---|\n' + now+' |-> PowerOFF Capacity: '+str(minC)+'%')
-Write(now + ' |-> Battery Voltage: ' + X708(2) + ' V\n' + now + ' |-> Battery Capacity: ' + X708(4) + ' %')
-LastCapacity = Capacity = X708(4)
-t1=1
-
 def Sleep(T):
-    LastCapacity  = Capacity
-    time.sleep(T)
+#    Write('Sleep: ' + str(int(T)) + 's');
+    time.sleep( int(T) )
 
-# Functions for while True
+###   Re-Init Capacity Variables   ###
+def Var():
+    global Capacity, LastCapacity;
+    LastCapacity = Capacity = X708(4);
 
-def AcPowerON(Capacity):
-    Sleep( float(Capacity) * 2 )
+def AC_ON():
+    Var(); global t1;
     if ( int(t1) > 1 ):
-        Write(now + ' |-> Protection: AC ON, Charging: ' + Capacity + '%')
-        t1=1
+        CalcAmpere(int(time.time())-t1); t1=1;
+        Write('AC Power ON, Charging: ' + Capacity + '%');
 
-def AcPowerOFF():
-    Icalc = ( mAh * (float(Capacity)/100) )
-    Write(now + ' |-> Protection: AC Lost, Capacity: ' + str(Capacity) + '%')
-    t1 = (int(time.time()) - 60);
-    Sleep( float(Capacity) )
+def AC_OFF():
+    Var(); global t1, mAh, Icalc, Capacity, LastCapacity;
+    if ( int(t1) == 1 ):
+        Write('AC Power Lost with Capacity: ' + str(Capacity) + '%');
+        t1 = (int(time.time())-3);
+    else:
+        Status = 'Status: ' + X708(2) + 'V - ' + X708(4) + '%';
+        Status += ' | Time: ' + str(int(time.time()) - t1 ) + 's';
+        Write(Status); Var();
+        if float(Capacity) < float(minC):
+            ShutDown_Now();
 
-def BatteryPowered(Capacity):
-    Status = now + ' |-> Status: ' + X708(2) + 'V - ' + X708(4) + '%'
-    Status += ' | Time: ' + str(int(time.time()) - t1) + 's'
-    Show = Status;
-    if float(Capacity) > float(minC):
-        Write(Show)
-        Sleep( float(Capacity) / 3 )
+def AC():
+#    global Capacity, LastCapacity;
+    if float(Capacity) > (float(LastCapacity) + float(tolerance)):   # AC ON
+        AC_ON();
+    elif float(Capacity) < (float(LastCapacity) - float(tolerance)): # AC OFF
+        AC_OFF();
+
+###############
+###   RUN   ###
+#
+Write('Protection.py loaded <-|\n');
+Write('Shutdown Capacity: ' + str(minC) + '  %');
+Write('Battery Voltage: ' + X708(2) + ' V');
+Write('Battery Capacity: ' + X708(4) + ' %');
+
 
 while True:
-    now = time.strftime("%H:%M", time.localtime());
-    Capacity = X708(4)
-    if float(Capacity) > (float(LastCapacity) + 0.2):
-        AcPowerON(Capacity)
-    elif float(Capacity) < (float(LastCapacity) - 0.2):
-        if ( int(t1) == 1 ):
-            AcPowerOFF(Capacity)
-        else:
-            BatteryPowered(Capacity)
-    Sleep( float(Capacity) / 2 )
-
-print ("Exit");
-
-
+    Capacity = X708(4); AC();                       # Check:  AC ON  ||  AC OFF
+    if (int(t1) > 1):           # if AC Power OFF ...
+        Sleep(float(Capacity)/12);
+    elif (float(Capacity) > 94):  # or AC ON && Capacity > 94% ...
+        Sleep(5);      # This Sleep is used for 'AC OFF - Start Time: t1'
+    else:                      # OR ...
+        Sleep(10);
