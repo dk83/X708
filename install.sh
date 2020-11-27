@@ -15,6 +15,5 @@ sudo ln -s "${PWD}/Reboot.sh"   "${Bin}/Reboot"
 sudo ln -s "${PWD}/Battery.py"   "${Bin}/Battery"
 
 # Prepare Logging
-Log="/var/log/X708.log";
+Log="/var/log/Do/Protection.py";
 sudo sh -c "echo ' ' > $Log";
-sudo chmod 0666 "$Log";
