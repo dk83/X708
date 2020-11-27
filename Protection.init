@@ -12,7 +12,7 @@
 case "$1" in
 	start)
 	    echo "- Battery Protection wird gestartet"
-            sleep 30s && /etc/Protection &
+            sleep 2m && /etc/Protection &
 	    ;;
 	stop)
             echo "Protection wird beendet"

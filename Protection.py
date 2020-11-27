@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 # -*- coding: utf-8 -*-
 import RPi.GPIO as GPIO
 from vcgencmd import Vcgencmd
@@ -10,12 +10,12 @@ global Capacity, Volt, Temp, USV
 minC=75       # min. Capacity from Battery in percent
 mAh=540       # Li-Ion Capacity: example with 3Ah. Need for Current Calculation
 ShutDown = "PowerOff"   # Set Command for Shutdown & Power Off
-LogFile = "/var/log/X708.log"
+LogFile = "/var/log/Do/Protection.log"
 
 def Write(text):
    f = open(LogFile, "a+")
    f.write(text + '\n'); f.close();
-#   print (text);
+   print (text);
 
 # Read i2c from Geekworm X708 UPS
 def X708(bit):
@@ -50,31 +50,40 @@ def Sleep(T):
     LastCapacity  = Capacity
     time.sleep(T)
 
+# Functions for while True
+
+def AcPowerON(Capacity):
+    Sleep( float(Capacity) * 2 )
+    if ( int(t1) > 1 ):
+        Write(now + ' |-> Protection: AC ON, Charging: ' + Capacity + '%')
+        t1=1
+
+def AcPowerOFF():
+    Icalc = ( mAh * (float(Capacity)/100) )
+    Write(now + ' |-> Protection: AC Lost, Capacity: ' + str(Capacity) + '%')
+    t1 = (int(time.time()) - 60);
+    Sleep( float(Capacity) )
+
+def BatteryPowered(Capacity):
+    Status = now + ' |-> Status: ' + X708(2) + 'V - ' + X708(4) + '%'
+    Status += ' | Time: ' + str(int(time.time()) - t1) + 's'
+    Show = Status;
+    if float(Capacity) > float(minC):
+        Write(Show)
+        Sleep( float(Capacity) / 3 )
 
 while True:
     now = time.strftime("%H:%M", time.localtime());
     Capacity = X708(4)
     if float(Capacity) > (float(LastCapacity) + 0.2):
-        if ( int(t1) > 1 ):
-            Write(now + ' |-> Protection: AC ON, Charging: ' + Capacity + '%')
-            t1=1
-        Sleep( (float(Capacity) * 5)/2 )
+        AcPowerON(Capacity)
     elif float(Capacity) < (float(LastCapacity) - 0.2):
         if ( int(t1) == 1 ):
-             Icalc = ( mAh * (float(Capacity)/100) )
-             Write(now + ' |-> Protection: AC Lost, Capacity: ' + str(Capacity) + '%')
-             t1 = (int(time.time()) - 60);  # add 60 s for better Calculation Icalc
-             Sleep( float(Capacity) * 3 )
+            AcPowerOFF(Capacity)
         else:
-             Status = now + ' |-> Status: '+X708(2)+'V - '+ X708(4)+'%'
-             Status += ' | Time: '+str(int(time.time()) - t1) +'s'
-             Show = Status;
-             if float(Capacity) > float(minC):   # if USV Voltage to lower than minCapacity
-                  LastCapacity = Capacity
-                  Write(Show)
-                  Sleep( (float(Capacity) * 3) / 2)
-             else:
-                  PowerOff
+            BatteryPowered(Capacity)
+    Sleep( float(Capacity) / 2 )
 
+print ("Exit");
 
 
