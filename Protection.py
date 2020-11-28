@@ -7,8 +7,8 @@ import sys,struct,smbus,sys,time,subprocess,threading
 global Capacity, Volt, Temp, USV, t1, LastCapacity
 
 ###   Script settings   ###
-minC=88       # min. Capacity from Battery in percent
-mAh=540       # Li-Ion Capacity: example with 3Ah. Need for Current Calculation
+minC=75       # min. Capacity from Battery in percent
+mAh=560       # Li-Ion Capacity: example with 3Ah. Need for Current Calculation
 ShutDown = "PowerOff"   # Set Command for Shutdown & Power Off
 LogFile = "/var/log/Do/Protection.log"
 ###   Init variables   ###
@@ -35,8 +35,8 @@ def X708(bit):
 LastCapacity = Capacity = X708(4);
 #
 def CalcAmpere(T):
-    Icalc = int( mAh - (mAh * (float(Capacity)/100)) );
-    Icalc = "%4.0f" % (Icalc * (int(T)/60));
+    Icalc = int( mAh - ((float(Capacity)*mAh) / 100) );
+    Icalc = "%4.0f" % ( (Icalc*3600)/int(T) );
     Write('Calculated Current Consumption: ' + str(Icalc) + 'mAh'); Sleep(1);
 
 # Shutdown Raspberry and Power Off
